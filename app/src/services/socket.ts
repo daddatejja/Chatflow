@@ -22,6 +22,7 @@ class SocketService {
   private callMuteListeners: Listener<{ userId: string; isMuted: boolean }>[] = [];
   private callScreenShareListeners: Listener<{ userId: string; isSharing: boolean }>[] = [];
   private currentPeerId: string | null = null;
+  private videoUpgradeListeners: Listener[] = [];
 
   connect(token: string): void {
     if (this.socket?.connected) return;
@@ -85,6 +86,18 @@ class SocketService {
 
     this.socket.on('call:screenshare:toggle', (data) => {
       this.callScreenShareListeners.forEach(l => l(data));
+    });
+
+    this.socket.on('call:video-upgrade:request', (data) => {
+      this.videoUpgradeListeners.forEach(l => l({ ...data, type: 'request' }));
+    });
+
+    this.socket.on('call:video-upgrade:accepted', (data) => {
+      this.videoUpgradeListeners.forEach(l => l({ ...data, type: 'accepted' }));
+    });
+
+    this.socket.on('call:video-upgrade:rejected', (data) => {
+      this.videoUpgradeListeners.forEach(l => l({ ...data, type: 'rejected' }));
     });
 
     this.socket.on('webrtc:offer', (data) => {
@@ -224,6 +237,19 @@ class SocketService {
     this.socket?.emit('call:screenshare:toggle', { peerId, isSharing });
   }
 
+  // Video upgrade
+  requestVideoUpgrade(peerId: string): void {
+    this.socket?.emit('call:video-upgrade:request', { peerId });
+  }
+
+  acceptVideoUpgrade(peerId: string): void {
+    this.socket?.emit('call:video-upgrade:accept', { peerId });
+  }
+
+  rejectVideoUpgrade(peerId: string): void {
+    this.socket?.emit('call:video-upgrade:reject', { peerId });
+  }
+
   // WebRTC signaling
   sendOffer(peerId: string, offer: RTCSessionDescriptionInit): void {
     this.socket?.emit('webrtc:offer', { peerId, offer });
@@ -294,6 +320,9 @@ class SocketService {
 
   onCallScreenShareToggle(l: Listener<{ userId: string; isSharing: boolean }>) { this.callScreenShareListeners.push(l); }
   offCallScreenShareToggle(l: Listener<{ userId: string; isSharing: boolean }>) { this.callScreenShareListeners = this.callScreenShareListeners.filter(x => x !== l); }
+
+  onVideoUpgrade(l: Listener) { this.videoUpgradeListeners.push(l); }
+  offVideoUpgrade(l: Listener) { this.videoUpgradeListeners = this.videoUpgradeListeners.filter(x => x !== l); }
 
   // Group
   joinGroup(groupId: string) { this.socket?.emit('group:join', { groupId }); }

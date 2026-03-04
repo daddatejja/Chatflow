@@ -179,16 +179,18 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
       if (data.type === 'incoming') {
         const caller = users.find(u => u.id === data.callerId);
         setCallState({ isActive: true, callType: data.callType, status: 'ringing', remoteUser: caller });
-        // Assume callLogId is saved temporarily if needed in state, 
-        // passing it through to the accept/reject calls.
         if (data.callLogId) {
           (window as any)._currentCallLogId = data.callLogId;
         }
       } else if (data.type === 'accepted') {
+        // The remote user accepted — we (caller) now create the offer
+        // Stream should already be initialized from startCall
         setCallState(prev => {
           socketService.setCurrentPeerId(data.receiverId || prev.remoteUser?.id || null);
-          if (socketService.getCurrentPeerId()) {
-            webrtcService.createOffer(socketService.getCurrentPeerId()!);
+          const peerId = socketService.getCurrentPeerId();
+          if (peerId) {
+            // Small delay to ensure WebRTC is fully initialized
+            setTimeout(() => webrtcService.createOffer(peerId), 100);
           }
           return { ...prev, status: 'connected', startTime: new Date() };
         });
@@ -469,15 +471,22 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  const startCall = useCallback((type: CallType) => {
+  const startCall = useCallback(async (type: CallType) => {
     const chat = selectedChatRef.current;
     if (!chat) return;
     setCallState({ isActive: true, callType: type, status: 'calling', remoteUser: chat });
     socketService.setCurrentPeerId(chat.id);
-    socketService.initiateCall(chat.id, type);
-    navigator.mediaDevices.getUserMedia({ audio: true, video: type === 'video' })
-      .then(stream => webrtcService.initialize(stream))
-      .catch(console.error);
+    try {
+      // Get media FIRST, then initialize WebRTC, then signal
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: type === 'video' });
+      webrtcService.initialize(stream);
+      socketService.initiateCall(chat.id, type);
+    } catch (err) {
+      console.error('Failed to start call - media access denied:', err);
+      setCallState({ isActive: false, callType: 'audio', status: 'idle' });
+      socketService.setCurrentPeerId(null);
+      toast.error('Could not access microphone/camera');
+    }
   }, []);
 
   const endCall = useCallback(() => {
@@ -493,14 +502,19 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     webrtcService.cleanup();
   }, [callState.remoteUser, callState.startTime]);
 
-  const acceptCall = useCallback(() => {
+  const acceptCall = useCallback(async () => {
     if (callState.remoteUser) {
       socketService.acceptCall(callState.remoteUser.id, (window as any)._currentCallLogId);
       socketService.setCurrentPeerId(callState.remoteUser.id);
       setCallState(prev => ({ ...prev, status: 'connected', startTime: new Date() }));
-      navigator.mediaDevices.getUserMedia({ audio: true, video: callState.callType === 'video' })
-        .then(stream => webrtcService.initialize(stream))
-        .catch(console.error);
+      try {
+        // Get media and initialize WebRTC BEFORE the caller sends their offer
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: callState.callType === 'video' });
+        webrtcService.initialize(stream);
+      } catch (err) {
+        console.error('Failed to accept call - media access denied:', err);
+        toast.error('Could not access microphone/camera');
+      }
     }
   }, [callState.remoteUser, callState.callType]);
 

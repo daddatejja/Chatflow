@@ -513,6 +513,19 @@ io.on('connection', (socket) => {
     io.to(`user:${peerId}`).emit('call:screenshare:toggle', { userId, isSharing });
   });
 
+  // Video upgrade invitation
+  socket.on('call:video-upgrade:request', ({ peerId }) => {
+    io.to(`user:${peerId}`).emit('call:video-upgrade:request', { userId });
+  });
+
+  socket.on('call:video-upgrade:accept', ({ peerId }) => {
+    io.to(`user:${peerId}`).emit('call:video-upgrade:accepted', { userId });
+  });
+
+  socket.on('call:video-upgrade:reject', ({ peerId }) => {
+    io.to(`user:${peerId}`).emit('call:video-upgrade:rejected', { userId });
+  });
+
   // WebRTC signaling
   socket.on('webrtc:offer', ({ peerId, offer }) => {
     io.to(`user:${peerId}`).emit('webrtc:offer', { userId, offer });

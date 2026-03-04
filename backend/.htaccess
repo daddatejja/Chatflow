@@ -1,0 +1,21 @@
+# CORS Headers for cPanel Apache proxy
+# This MUST be in the document root of the API subdomain (chatflowapi.daddatejja.dev)
+
+<IfModule mod_headers.c>
+  # Allow CORS from the frontend domain
+  SetEnvIf Origin "https://chatflow\.daddatejja\.dev$" CORS_ORIGIN=$0
+
+  Header always set Access-Control-Allow-Origin "%{CORS_ORIGIN}e" env=CORS_ORIGIN
+  Header always set Access-Control-Allow-Methods "GET, POST, PUT, PATCH, DELETE, OPTIONS"
+  Header always set Access-Control-Allow-Headers "Content-Type, Authorization, X-Requested-With"
+  Header always set Access-Control-Allow-Credentials "true"
+  Header always set Access-Control-Max-Age "86400"
+</IfModule>
+
+# Handle OPTIONS preflight at Apache level (before reaching Node.js)
+RewriteEngine On
+RewriteCond %{REQUEST_METHOD} OPTIONS
+RewriteRule ^(.*)$ $1 [R=204,L]
+
+# Passenger/Node.js app configuration (cPanel auto-generates similar lines)
+# PassengerAppRoot and PassengerStartupFile may already exist — don't duplicate them

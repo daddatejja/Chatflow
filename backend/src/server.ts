@@ -38,12 +38,6 @@ app.set('io', io);
 
 const PORT = process.env.PORT || 3000;
 
-// Security middleware
-app.use(helmet({
-  crossOriginResourcePolicy: { policy: 'cross-origin' }, // Allow uploads to be served cross-origin
-  contentSecurityPolicy: false // Disable CSP for now (frontend handles this)
-}));
-
 // Handle preflight OPTIONS requests FIRST (critical for cPanel/Apache proxy)
 app.options('*', (_req, res) => {
   const origin = _req.headers.origin;
@@ -57,7 +51,7 @@ app.options('*', (_req, res) => {
   res.status(204).end();
 });
 
-// CORS middleware
+// CORS middleware (MUST come before helmet)
 app.use(cors({
   origin: (origin, callback) => {
     // Allow requests with no origin (mobile apps, Postman, etc.)
@@ -70,6 +64,12 @@ app.use(cors({
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+}));
+
+// Security middleware (after CORS so it doesn't interfere with CORS headers)
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: 'cross-origin' },
+  contentSecurityPolicy: false
 }));
 
 app.use(express.json({ limit: '50mb' }));

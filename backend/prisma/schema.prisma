@@ -1,0 +1,483 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// User model with all authentication methods
+model User {
+  id         String     @id @default(uuid())
+  email      String     @unique
+  password   String?
+  name       String
+  avatar     String?
+  bio        String?    @db.Text
+  status     UserStatus @default(OFFLINE)
+  lastSeen   DateTime   @default(now())
+  isAdmin    Boolean    @default(false)
+  isVerified Boolean    @default(false)
+  isBanned   Boolean    @default(false)
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+
+  // Call history
+  callsInitiated CallLog[] @relation("CallInitiator")
+  callsReceived  CallLog[] @relation("CallReceiver")
+
+  // OAuth fields
+  googleId String? @unique
+  githubId String? @unique
+
+  // MFA fields
+  mfaSecret      String?
+  mfaEnabled     Boolean  @default(false)
+  mfaBackupCodes String[]
+
+  // Password reset
+  passwordResetToken   String?   @unique
+  passwordResetExpires DateTime?
+
+  // Email verification
+  emailVerificationToken   String?   @unique
+  emailVerificationExpires DateTime?
+
+  // Relations
+  sessions         Session[]
+  passkeys         Passkey[]
+  messages         Message[] @relation("SentMessages")
+  receivedMessages Message[] @relation("ReceivedMessages")
+
+  // Friends system
+  friendsSent     Friend[]      @relation("FriendsSent")
+  friendsReceived Friend[]      @relation("FriendsReceived")
+  blockedUsers    BlockedUser[] @relation("BlockedBy")
+  blockedBy       BlockedUser[] @relation("BlockedUsers")
+
+  // Groups
+  ownedGroups       Group[]
+  groupMembers      GroupMember[]
+  sentGroupMessages GroupMessage[] @relation("GroupMessageSender")
+
+  // Reactions
+  reactions MessageReaction[]
+
+  // Polls
+  pollVotes PollVote[]
+
+  // Threads
+  threadReplies ThreadReply[]
+
+  // Group reactions and read receipts
+  groupReactions    GroupMessageReaction[]
+  groupMessageReads GroupMessageRead[]
+
+  // Admin logs
+  adminLogs AdminLog[]
+
+  // Notifications
+  notifications          Notification[] @relation("UserNotifications")
+  triggeredNotifications Notification[] @relation("TriggeredBy")
+  GroupMessage           GroupMessage[]
+
+  @@index([email])
+  @@index([status])
+  @@index([googleId])
+  @@index([githubId])
+}
+
+enum UserStatus {
+  ONLINE
+  AWAY
+  BUSY
+  OFFLINE
+}
+
+// Session tracking for security
+model Session {
+  id     String @id @default(uuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token  String @unique
+
+  // Device info
+  browser        String
+  browserVersion String
+  os             String
+  osVersion      String
+  device         String
+  deviceType     DeviceType
+
+  // Location
+  ipAddress String
+  country   String?
+  city      String?
+  region    String?
+  latitude  Float?
+  longitude Float?
+
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  lastActive DateTime @default(now())
+  expiresAt  DateTime
+
+  @@index([userId])
+  @@index([token])
+  @@index([isActive])
+  @@index([expiresAt])
+}
+
+enum DeviceType {
+  DESKTOP
+  MOBILE
+  TABLET
+  UNKNOWN
+}
+
+// WebAuthn/Passkey support
+model Passkey {
+  id           String   @id @default(uuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  credentialId String   @unique
+  publicKey    Bytes
+  counter      Int      @default(0)
+  deviceName   String
+  deviceType   String
+  createdAt    DateTime @default(now())
+  lastUsed     DateTime @default(now())
+
+  @@index([userId])
+}
+
+// Friend system with requests
+model Friend {
+  id         String       @id @default(uuid())
+  senderId   String
+  sender     User         @relation("FriendsSent", fields: [senderId], references: [id], onDelete: Cascade)
+  receiverId String
+  receiver   User         @relation("FriendsReceived", fields: [receiverId], references: [id], onDelete: Cascade)
+  status     FriendStatus @default(PENDING)
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+
+  @@unique([senderId, receiverId])
+  @@index([senderId])
+  @@index([receiverId])
+  @@index([status])
+}
+
+enum FriendStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  BLOCKED
+}
+
+// Call history logs
+model CallLog {
+  id         String     @id @default(uuid())
+  callerId   String
+  caller     User       @relation("CallInitiator", fields: [callerId], references: [id], onDelete: Cascade)
+  receiverId String
+  receiver   User       @relation("CallReceiver", fields: [receiverId], references: [id], onDelete: Cascade)
+  callType   String     // "audio" or "video"
+  status     CallStatus
+  startedAt  DateTime   @default(now())
+  endedAt    DateTime?
+  duration   Int?       // in seconds
+
+  @@index([callerId])
+  @@index([receiverId])
+  @@index([status])
+}
+
+enum CallStatus {
+  MISSED
+  COMPLETED
+  REJECTED
+  ONGOING
+}
+
+// Blocked users
+model BlockedUser {
+  id        String   @id @default(uuid())
+  blockerId String
+  blocker   User     @relation("BlockedBy", fields: [blockerId], references: [id], onDelete: Cascade)
+  blockedId String
+  blocked   User     @relation("BlockedUsers", fields: [blockedId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([blockerId, blockedId])
+  @@index([blockerId])
+}
+
+// Groups for multi-user chats
+model Group {
+  id          String   @id @default(uuid())
+  name        String
+  description String?  @db.Text
+  avatar      String?
+  ownerId     String
+  owner       User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  isPrivate   Boolean  @default(false)
+  inviteCode  String?  @unique
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  members  GroupMember[]
+  messages GroupMessage[]
+
+  @@index([ownerId])
+  @@index([inviteCode])
+}
+
+model GroupMember {
+  id         String    @id @default(uuid())
+  groupId    String
+  group      Group     @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role       GroupRole @default(MEMBER)
+  joinedAt   DateTime  @default(now())
+  lastReadAt DateTime  @default(now())
+
+  @@unique([groupId, userId])
+  @@index([groupId])
+  @@index([userId])
+}
+
+enum GroupRole {
+  OWNER
+  ADMIN
+  MEMBER
+}
+
+// Direct messages
+model Message {
+  id         String      @id @default(uuid())
+  senderId   String
+  sender     User        @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
+  receiverId String
+  receiver   User        @relation("ReceivedMessages", fields: [receiverId], references: [id], onDelete: Cascade)
+  type       MessageType @default(TEXT)
+  content    String      @db.Text
+  duration   Int? // For voice/video messages
+  isRead     Boolean     @default(false)
+  readAt     DateTime?
+  isEdited   Boolean     @default(false)
+  editedAt   DateTime?
+  isDeleted  Boolean     @default(false)
+  replyToId  String? // For threaded replies
+  createdAt  DateTime    @default(now())
+
+  // Relations
+  reactions     MessageReaction[]
+  threadReplies ThreadReply[]
+
+  @@index([senderId])
+  @@index([receiverId])
+  @@index([createdAt])
+  @@index([isRead])
+}
+
+// Group messages
+model GroupMessage {
+  id        String      @id @default(uuid())
+  groupId   String
+  group     Group       @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  senderId  String
+  sender    User        @relation("GroupMessageSender", fields: [senderId], references: [id], onDelete: Cascade)
+  type      MessageType @default(TEXT)
+  content   String      @db.Text
+  duration  Int?
+  isEdited  Boolean     @default(false)
+  editedAt  DateTime?
+  isDeleted Boolean     @default(false)
+  replyToId String?
+  createdAt DateTime    @default(now())
+
+  // Relations
+  reactions GroupMessageReaction[]
+  readBy    GroupMessageRead[]
+  User      User?                  @relation(fields: [userId], references: [id])
+  userId    String?
+
+  @@index([groupId])
+  @@index([senderId])
+  @@index([createdAt])
+}
+
+enum MessageType {
+  TEXT
+  VOICE
+  VIDEO
+  IMAGE
+  FILE
+  LOCATION
+  CONTACT
+}
+
+// Message reactions (emoji reactions)
+model MessageReaction {
+  id        String   @id @default(uuid())
+  messageId String
+  message   Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  emoji     String
+  createdAt DateTime @default(now())
+
+  @@unique([messageId, userId, emoji])
+  @@index([messageId])
+}
+
+model GroupMessageReaction {
+  id        String       @id @default(uuid())
+  messageId String
+  message   GroupMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  emoji     String
+  createdAt DateTime     @default(now())
+
+  @@unique([messageId, userId, emoji])
+  @@index([messageId])
+}
+
+// Message read receipts for groups
+model GroupMessageRead {
+  id        String       @id @default(uuid())
+  messageId String
+  message   GroupMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  readAt    DateTime     @default(now())
+
+  @@unique([messageId, userId])
+  @@index([messageId])
+}
+
+// Thread replies for threaded conversations
+model ThreadReply {
+  id        String   @id @default(uuid())
+  messageId String
+  senderId  String
+  sender    User     @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  content   String   @db.Text
+  createdAt DateTime @default(now())
+  Message   Message  @relation(fields: [messageId], references: [id])
+
+  @@index([messageId])
+  @@index([senderId])
+}
+
+// Polls in messages
+model Poll {
+  id          String    @id @default(uuid())
+  messageId   String
+  question    String
+  isMultiple  Boolean   @default(false)
+  isAnonymous Boolean   @default(false)
+  endsAt      DateTime?
+  createdAt   DateTime  @default(now())
+
+  // Relations
+  options PollOption[]
+}
+
+model PollOption {
+  id     String @id @default(uuid())
+  pollId String
+  poll   Poll   @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  text   String
+  order  Int
+
+  // Relations
+  votes PollVote[]
+}
+
+model PollVote {
+  id        String     @id @default(uuid())
+  optionId  String
+  option    PollOption @relation(fields: [optionId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime   @default(now())
+
+  @@unique([optionId, userId])
+  @@index([optionId])
+}
+
+// Notifications system
+model Notification {
+  id            String           @id @default(uuid())
+  userId        String
+  user          User             @relation("UserNotifications", fields: [userId], references: [id], onDelete: Cascade)
+  type          NotificationType
+  title         String
+  body          String
+  data          Json? // Additional data
+  isRead        Boolean          @default(false)
+  triggeredById String?
+  triggeredBy   User?            @relation("TriggeredBy", fields: [triggeredById], references: [id])
+  createdAt     DateTime         @default(now())
+
+  @@index([userId])
+  @@index([isRead])
+  @@index([createdAt])
+}
+
+enum NotificationType {
+  FRIEND_REQUEST
+  FRIEND_ACCEPTED
+  NEW_MESSAGE
+  GROUP_INVITE
+  GROUP_MESSAGE
+  CALL_MISSED
+  MENTION
+  SYSTEM
+}
+
+// Admin logs for auditing
+model AdminLog {
+  id         String   @id @default(uuid())
+  adminId    String
+  admin      User     @relation(fields: [adminId], references: [id], onDelete: Cascade)
+  action     String
+  entityType String // USER, GROUP, MESSAGE, etc.
+  entityId   String?
+  oldValue   Json?
+  newValue   Json?
+  ipAddress  String
+  createdAt  DateTime @default(now())
+
+  @@index([adminId])
+  @@index([action])
+  @@index([createdAt])
+}
+
+// Application settings
+model AppSettings {
+  id        String   @id @default(uuid())
+  key       String   @unique
+  value     Json
+  updatedAt DateTime @updatedAt
+  updatedBy String?
+}
+
+// Rate limiting
+model RateLimit {
+  id         String   @id @default(uuid())
+  identifier String // IP or user ID
+  type       String // login, message, etc.
+  count      Int      @default(0)
+  resetAt    DateTime
+
+  @@unique([identifier, type])
+  @@index([identifier])
+  @@index([resetAt])
+}

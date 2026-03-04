@@ -1,0 +1,17 @@
+Environment variables loaded from .env
+Prisma schema loaded from prisma\schema.prisma
+
+Error: Prisma schema validation - (validate wasm)
+Error code: P1012
+[1;91merror[0m: [1mError validating model "User": Ambiguous relation detected. The fields `sentGroupMessages` and `GroupMessage` in model `User` both refer to `GroupMessage`. Please provide different relation names for them by adding `@relation(<name>).[0m
+  [1;94m-->[0m  [4mprisma\schema.prisma:49[0m
+[1;94m   | [0m
+[1;94m48 | [0m  groupMembers      GroupMember[]
+[1;94m49 | [0m  [1;91msentGroupMessages GroupMessage[][0m
+[1;94m50 | [0m
+[1;94m   | [0m
+
+Validation Error Count: 1
+[Context: validate]
+
+Prisma CLI Version : 5.22.0

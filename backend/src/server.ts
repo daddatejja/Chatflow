@@ -44,6 +44,19 @@ app.use(helmet({
   contentSecurityPolicy: false // Disable CSP for now (frontend handles this)
 }));
 
+// Handle preflight OPTIONS requests FIRST (critical for cPanel/Apache proxy)
+app.options('*', (_req, res) => {
+  const origin = _req.headers.origin;
+  if (origin && allowedOrigins.includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  }
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  res.setHeader('Access-Control-Max-Age', '86400');
+  res.status(204).end();
+});
+
 // CORS middleware
 app.use(cors({
   origin: (origin, callback) => {
@@ -54,7 +67,9 @@ app.use(cors({
       callback(new Error('Not allowed by CORS'));
     }
   },
-  credentials: true
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 }));
 
 app.use(express.json({ limit: '50mb' }));

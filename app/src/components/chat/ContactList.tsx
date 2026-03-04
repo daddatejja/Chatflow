@@ -21,7 +21,7 @@ function getLastMessagePreview(msg: Message | undefined): string {
   }
 }
 
-export function ContactList() {
+export function ContactList({ onContactSelect }: { onContactSelect?: () => void } = {}) {
   const { users, selectedChat, selectChat, unreadCounts, currentUser, lastMessages, blockedUsers, blockUser } = useChat();
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -32,7 +32,7 @@ export function ContactList() {
     );
 
   return (
-    <div className="w-80 bg-card border-r border-border flex flex-col h-full shadow-sm z-10 transition-colors duration-200">
+    <div className="w-full bg-card flex flex-col h-full shadow-sm z-10 transition-colors duration-200">
       {/* Header */}
       <div className="p-4 border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-20">
         <div className="flex items-center justify-between mb-4">
@@ -96,7 +96,7 @@ export function ContactList() {
                 isSelected={selectedChat?.id === user.id}
                 unreadCount={unreadCounts[user.id] || 0}
                 lastMessage={lastMessages[user.id]}
-                onClick={() => selectChat(user)}
+                onClick={() => { selectChat(user); onContactSelect?.(); }}
                 onBlock={() => blockUser(user.id)}
               />
             ))

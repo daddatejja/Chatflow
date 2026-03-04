@@ -7,15 +7,20 @@ import { formatTime } from '@/lib/utils';
 import { useState } from 'react';
 import { CreateGroupDialog } from './CreateGroupDialog';
 
-export function GroupList() {
+export function GroupList({ onGroupSelect }: { onGroupSelect?: () => void } = {}) {
     const { groups, selectedGroup, selectGroup, groupUnreadCounts, lastGroupMessages } = useGroupChat();
     const [search, setSearch] = useState('');
     const [isCreateOpen, setIsCreateOpen] = useState(false);
 
     const filteredGroups = groups.filter(g => g.name.toLowerCase().includes(search.toLowerCase()));
 
+    const handleSelectGroup = (group: typeof groups[0]) => {
+        selectGroup(group);
+        onGroupSelect?.();
+    };
+
     return (
-        <div className="h-full flex flex-col bg-background border-r border-border">
+        <div className="h-full flex flex-col bg-background">
             <div className="p-4 border-b border-border space-y-4">
                 <div className="flex items-center justify-between">
                     <h2 className="text-xl font-semibold flex items-center gap-2">
@@ -57,7 +62,7 @@ export function GroupList() {
                         return (
                             <button
                                 key={group.id}
-                                onClick={() => selectGroup(group)}
+                                onClick={() => handleSelectGroup(group)}
                                 className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all ${isSelected ? 'bg-primary/10' : 'hover:bg-muted/50'
                                     }`}
                             >

@@ -19,7 +19,7 @@ import { FriendRequestsDialog } from '@/components/chat/FriendRequestsDialog';
 import { SearchPanel } from '@/components/chat/SearchPanel';
 import { CallHistory } from '@/components/call/CallHistory';
 import { NotificationCenter } from '@/components/notifications/NotificationCenter';
-import { Settings as SettingsIcon, LogOut, Shield, Bell, Moon, Sun, UserPlus, Search, Phone } from 'lucide-react';
+import { UserPlus, Bell, Shield, Settings as SettingsIcon, LogOut, Sun, Moon, Search, Phone, Menu, ArrowLeft } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { ThemeProvider } from '@/components/theme-provider';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
@@ -38,6 +38,7 @@ function AppContent() {
   const [loading, setLoading] = useState(true);
   const [unreadNotifications, setUnreadNotifications] = useState(0);
   const [activeTab, setActiveTab] = useState<'dms' | 'groups'>('dms');
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(true);
   const { theme, setTheme } = useTheme();
 
   // Check for existing token on mount
@@ -168,8 +169,18 @@ function AppContent() {
     <ChatProvider>
       <div className="h-screen w-screen bg-background text-foreground flex flex-col overflow-hidden">
         {/* Header */}
-        <header className="bg-card border-b border-border px-4 py-3 flex items-center justify-between shadow-sm z-10 shrink-0">
-          <div className="flex items-center gap-6">
+        <header className="bg-card border-b border-border px-2 sm:px-4 py-2 sm:py-3 flex items-center justify-between shadow-sm z-10 shrink-0">
+          <div className="flex items-center gap-2 sm:gap-6">
+            {/* Mobile hamburger / back button */}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="md:hidden text-foreground hover:bg-accent/50 rounded-full"
+              onClick={() => setMobileSidebarOpen(prev => !prev)}
+            >
+              {mobileSidebarOpen ? <ArrowLeft className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            </Button>
+
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 bg-gradient-to-br from-blue-400 to-purple-500 rounded-lg flex items-center justify-center">
                 <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -298,20 +309,55 @@ function AppContent() {
         </header>
 
         {/* Main Content */}
-        <div className="flex-1 flex overflow-hidden">
+        <div className="flex-1 flex overflow-hidden relative">
           <GroupChatProvider>
             <div className="w-full h-full flex">
-              <div className={`w-80 shrink-0 border-r border-border ${activeTab === 'dms' ? 'block' : 'hidden'}`}>
-                <ContactList />
+              {/* Sidebar - full screen on mobile when open, fixed width on desktop */}
+              <div className={`
+                ${mobileSidebarOpen ? 'flex' : 'hidden'}
+                md:flex
+                flex-col
+                w-full md:w-80
+                shrink-0
+                border-r border-border
+                absolute md:relative
+                inset-0 md:inset-auto
+                z-20 md:z-auto
+                bg-background
+                ${activeTab === 'dms' ? '' : 'hidden md:hidden'}
+              `}>
+                <ContactList onContactSelect={() => setMobileSidebarOpen(false)} />
               </div>
-              <div className={`flex-1 min-w-0 ${activeTab === 'dms' ? 'block' : 'hidden'}`}>
+              <div className={`
+                ${mobileSidebarOpen ? 'hidden' : 'flex'}
+                md:flex
+                flex-col flex-1 min-w-0
+                ${activeTab === 'dms' ? '' : 'hidden md:hidden'}
+              `}>
                 <ChatArea />
               </div>
 
-              <div className={`w-80 shrink-0 border-r border-border ${activeTab === 'groups' ? 'block' : 'hidden'}`}>
-                <GroupList />
+              <div className={`
+                ${mobileSidebarOpen ? 'flex' : 'hidden'}
+                md:flex
+                flex-col
+                w-full md:w-80
+                shrink-0
+                border-r border-border
+                absolute md:relative
+                inset-0 md:inset-auto
+                z-20 md:z-auto
+                bg-background
+                ${activeTab === 'groups' ? '' : 'hidden md:hidden'}
+              `}>
+                <GroupList onGroupSelect={() => setMobileSidebarOpen(false)} />
               </div>
-              <div className={`flex-1 min-w-0 ${activeTab === 'groups' ? 'block' : 'hidden'}`}>
+              <div className={`
+                ${mobileSidebarOpen ? 'hidden' : 'flex'}
+                md:flex
+                flex-col flex-1 min-w-0
+                ${activeTab === 'groups' ? '' : 'hidden md:hidden'}
+              `}>
                 <GroupChatArea />
               </div>
             </div>

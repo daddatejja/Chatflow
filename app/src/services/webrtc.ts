@@ -14,8 +14,29 @@ class WebRTCService {
         iceServers: [
             { urls: 'stun:stun.l.google.com:19302' },
             { urls: 'stun:stun1.l.google.com:19302' },
-            { urls: 'stun:stun2.l.google.com:19302' },
-        ]
+            // Free TURN servers for NAT traversal in production
+            {
+                urls: 'turn:a.relay.metered.ca:80',
+                username: 'e8dd65b92f0b1f834f77b420',
+                credential: '1lVXpnhp3GXOlMWu'
+            },
+            {
+                urls: 'turn:a.relay.metered.ca:80?transport=tcp',
+                username: 'e8dd65b92f0b1f834f77b420',
+                credential: '1lVXpnhp3GXOlMWu'
+            },
+            {
+                urls: 'turn:a.relay.metered.ca:443',
+                username: 'e8dd65b92f0b1f834f77b420',
+                credential: '1lVXpnhp3GXOlMWu'
+            },
+            {
+                urls: 'turns:a.relay.metered.ca:443?transport=tcp',
+                username: 'e8dd65b92f0b1f834f77b420',
+                credential: '1lVXpnhp3GXOlMWu'
+            }
+        ],
+        iceCandidatePoolSize: 10
     };
 
     constructor() {

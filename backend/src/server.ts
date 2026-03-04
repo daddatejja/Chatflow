@@ -533,24 +533,20 @@ io.on('connection', (socket) => {
   });
 });
 
-// Start server
-const startServer = async () => {
-  try {
-    // Test database connection
-    await prisma.$connect();
-    console.log('Connected to PostgreSQL database');
+// Start server - listen() MUST be called synchronously for CloudLinux Passenger
+// Passenger intercepts the listen() call to bind to its own socket
+httpServer.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+  console.log(`WebSocket server ready`);
+});
 
-    httpServer.listen(PORT, () => {
-      console.log(`Server running on port ${PORT}`);
-      console.log(`WebSocket server ready`);
-    });
-  } catch (error) {
+// Connect to database after listen (non-blocking)
+prisma.$connect()
+  .then(() => console.log('Connected to PostgreSQL database'))
+  .catch((error) => {
     console.error('Failed to connect to database:', error);
-    process.exit(1);
-  }
-};
-
-startServer();
+    // Don't exit - let Passenger handle the error
+  });
 
 // Graceful shutdown
 const gracefulShutdown = async (signal: string) => {

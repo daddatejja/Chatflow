@@ -295,7 +295,7 @@ function MessageBubble({ message, isOwn, showAvatar, otherUser, onReaction, onEd
                 {/* Text */}
                 {message.type?.toLowerCase() === 'text' && (
                   message.content === '[POLL]' ? (
-                    <PollWidget pollId={message.id} />
+                    <PollWidget messageId={message.id} />
                   ) : (
                     <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">{message.content}</p>
                   )
@@ -366,6 +366,19 @@ function VoiceMessage({ message, isOwn }: { message: Message; isOwn: boolean }) 
   const src = message.content.startsWith('http') || message.content.startsWith('blob:')
     ? message.content
     : `${API_URL}${message.content}`;
+
+  // Cleanup audio resources on unmount to prevent memory leaks
+  useEffect(() => {
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.onended = null;
+        audioRef.current.ontimeupdate = null;
+        audioRef.current.src = '';
+        audioRef.current = null;
+      }
+    };
+  }, []);
 
   const togglePlay = () => {
     if (!audioRef.current) {

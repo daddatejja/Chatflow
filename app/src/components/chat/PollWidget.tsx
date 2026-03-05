@@ -5,10 +5,10 @@ import { FileBarChart2, CheckCircle2 } from 'lucide-react';
 import { socketService } from '@/services/socket';
 
 interface PollWidgetProps {
-    pollId: string;
+    messageId: string;
 }
 
-export function PollWidget({ pollId }: PollWidgetProps) {
+export function PollWidget({ messageId }: PollWidgetProps) {
     const [poll, setPoll] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const { currentUser } = useChat();
@@ -16,7 +16,7 @@ export function PollWidget({ pollId }: PollWidgetProps) {
     useEffect(() => {
         const fetchPoll = async () => {
             try {
-                const res = await pollAPI.getPoll(pollId);
+                const res = await pollAPI.getPollByMessageId(messageId);
                 setPoll(res.data.poll);
             } catch (error) {
                 console.error('Error fetching poll:', error);
@@ -28,7 +28,7 @@ export function PollWidget({ pollId }: PollWidgetProps) {
         fetchPoll();
 
         const handlePollUpdated = (data: { poll: any }) => {
-            if (data.poll.id === pollId) {
+            if (data.poll.messageId === messageId || data.poll.id === poll?.id) {
                 setPoll(data.poll);
             }
         };
@@ -43,7 +43,7 @@ export function PollWidget({ pollId }: PollWidgetProps) {
                 socket.off('poll:updated', handlePollUpdated);
             }
         };
-    }, [pollId]);
+    }, [messageId, poll?.id]);
 
     if (loading) return <div className="p-4 text-sm text-muted-foreground animate-pulse">Loading poll...</div>;
     if (!poll) return null;

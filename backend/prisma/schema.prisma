@@ -45,10 +45,11 @@ model User {
   emailVerificationExpires DateTime?
 
   // Relations
-  sessions         Session[]
-  passkeys         Passkey[]
-  messages         Message[] @relation("SentMessages")
-  receivedMessages Message[] @relation("ReceivedMessages")
+  sessions          Session[]
+  passkeys          Passkey[]
+  messages          Message[]          @relation("SentMessages")
+  receivedMessages  Message[]          @relation("ReceivedMessages")
+  pushSubscriptions PushSubscription[]
 
   // Friends system
   friendsSent     Friend[]      @relation("FriendsSent")
@@ -183,11 +184,11 @@ model CallLog {
   caller     User       @relation("CallInitiator", fields: [callerId], references: [id], onDelete: Cascade)
   receiverId String
   receiver   User       @relation("CallReceiver", fields: [receiverId], references: [id], onDelete: Cascade)
-  callType   String     // "audio" or "video"
+  callType   String // "audio" or "video"
   status     CallStatus
   startedAt  DateTime   @default(now())
   endedAt    DateTime?
-  duration   Int?       // in seconds
+  duration   Int? // in seconds
 
   @@index([callerId])
   @@index([receiverId])
@@ -480,4 +481,17 @@ model RateLimit {
   @@unique([identifier, type])
   @@index([identifier])
   @@index([resetAt])
+}
+
+model PushSubscription {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  endpoint  String
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now())
+
+  @@unique([userId, endpoint])
+  @@index([userId])
 }

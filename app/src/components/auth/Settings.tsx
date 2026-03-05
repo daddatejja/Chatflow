@@ -11,7 +11,8 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { userAPI, authAPI, passkeyAPI, sessionAPI } from '@/services/api';
-import { Camera, Fingerprint, Shield, Smartphone, LogOut, Monitor, Globe, Clock, Trash2, KeyRound } from 'lucide-react';
+import { Camera, Fingerprint, Shield, Smartphone, LogOut, Monitor, Globe, Clock, Trash2, KeyRound, Bell } from 'lucide-react';
+import { subscribeToPushNotifications, unsubscribeFromPushNotifications } from '@/services/pushNotifications';
 
 interface SettingsProps {
   user: any;
@@ -181,6 +182,33 @@ function SecuritySettings({ user, onUpdateUser }: { user: any; onUpdateUser: (us
   const [, setMfaSecret] = useState('');
   const [mfaCode, setMfaCode] = useState('');
   const [showMFASetup, setShowMFASetup] = useState(false);
+  const [pushEnabled, setPushEnabled] = useState(false);
+  const [pushLoading, setPushLoading] = useState(false);
+
+  useEffect(() => {
+    if ('serviceWorker' in navigator && 'PushManager' in window) {
+      navigator.serviceWorker.ready.then(async (registration) => {
+        const sub = await registration.pushManager.getSubscription();
+        setPushEnabled(!!sub);
+      });
+    }
+  }, []);
+
+  const handleTogglePush = async () => {
+    setPushLoading(true);
+    try {
+      if (pushEnabled) {
+        const success = await unsubscribeFromPushNotifications();
+        if (success) setPushEnabled(false);
+      } else {
+        const success = await subscribeToPushNotifications();
+        if (success) setPushEnabled(true);
+        else alert('Failed to enable push notifications. Check your browser permissions.');
+      }
+    } finally {
+      setPushLoading(false);
+    }
+  };
 
   const handleSetupMFA = async () => {
     try {
@@ -216,6 +244,35 @@ function SecuritySettings({ user, onUpdateUser }: { user: any; onUpdateUser: (us
 
   return (
     <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Bell className="w-5 h-5" />
+            Push Notifications
+          </CardTitle>
+          <CardDescription>
+            Receive notifications even when the app is closed
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="font-medium">{pushEnabled ? 'Enabled' : 'Disabled'}</p>
+              <p className="text-sm text-muted-foreground">
+                Get notified about new messages and friend requests
+              </p>
+            </div>
+            <Button 
+                variant={pushEnabled ? "outline" : "default"} 
+                onClick={handleTogglePush}
+                disabled={pushLoading}
+            >
+              {pushLoading ? 'Updating' : (pushEnabled ? 'Disable' : 'Enable')}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">

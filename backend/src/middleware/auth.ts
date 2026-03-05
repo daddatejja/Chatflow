@@ -1,7 +1,7 @@
-import { Request, Response, NextFunction } from 'express';
-import { verifyToken } from '../utils/jwt';
-import { prisma } from '../lib/prisma';
-import { IUser } from '../types';
+import { Request, Response, NextFunction } from "express";
+import { verifyToken } from "../utils/jwt";
+import { prisma } from "../lib/prisma";
+import { IUser } from "../types";
 
 export interface AuthenticatedRequest extends Request {
   user?: IUser;
@@ -12,13 +12,13 @@ export interface AuthenticatedRequest extends Request {
 export const authenticate = async (
   req: AuthenticatedRequest,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ): Promise<void> => {
   try {
     const authHeader = req.headers.authorization;
 
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      res.status(401).json({ error: 'Access token required' });
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      res.status(401).json({ error: "Access token required" });
       return;
     }
 
@@ -27,65 +27,60 @@ export const authenticate = async (
     try {
       const decoded = verifyToken(token);
 
-      // Check if session is still active
+      // Combined session + user lookup in a single query
       const session = await prisma.session.findFirst({
         where: {
           token,
           isActive: true,
-          expiresAt: { gt: new Date() }
-        }
+          expiresAt: { gt: new Date() },
+        },
+        include: {
+          user: true,
+        },
       });
 
-      if (!session) {
-        res.status(401).json({ error: 'Session expired or invalid' });
+      if (!session || !session.user) {
+        res.status(401).json({ error: "Session expired or invalid" });
         return;
       }
 
-      // Get user
-      const user = await prisma.user.findUnique({
-        where: { id: decoded.userId }
-      });
-
-      if (!user) {
-        res.status(401).json({ error: 'User not found' });
+      if (session.user.isBanned) {
+        res.status(403).json({ error: "Account is banned" });
         return;
       }
 
-      if (user.isBanned) {
-        res.status(403).json({ error: 'Account is banned' });
-        return;
-      }
+      // Update last active (fire-and-forget to avoid blocking the request)
+      prisma.session
+        .update({
+          where: { id: session.id },
+          data: { lastActive: new Date() },
+        })
+        .catch(() => {});
 
-      // Update last active
-      await prisma.session.update({
-        where: { id: session.id },
-        data: { lastActive: new Date() }
-      });
-
-      req.user = user;
+      req.user = session.user;
       req.token = token;
       req.sessionId = session.id;
 
       next();
     } catch (jwtError) {
-      res.status(401).json({ error: 'Invalid token' });
+      res.status(401).json({ error: "Invalid token" });
       return;
     }
   } catch (error) {
-    console.error('Auth middleware error:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    console.error("Auth middleware error:", error);
+    res.status(500).json({ error: "Internal server error" });
   }
 };
 
 export const optionalAuth = async (
   req: AuthenticatedRequest,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ): Promise<void> => {
   try {
     const authHeader = req.headers.authorization;
 
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
       next();
       return;
     }
@@ -98,19 +93,15 @@ export const optionalAuth = async (
         where: {
           token,
           isActive: true,
-          expiresAt: { gt: new Date() }
-        }
+          expiresAt: { gt: new Date() },
+        },
+        include: { user: true },
       });
 
-      if (session) {
-        const user = await prisma.user.findUnique({
-          where: { id: decoded.userId }
-        });
-        if (user) {
-          req.user = user;
-          req.token = token;
-          req.sessionId = session.id;
-        }
+      if (session?.user) {
+        req.user = session.user;
+        req.token = token;
+        req.sessionId = session.id;
       }
     } catch {
       // Ignore token errors for optional auth

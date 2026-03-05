@@ -28,6 +28,8 @@ interface GroupChatContextType {
     sendGroupMediaMessage: (blob: Blob, type: 'voice' | 'video', duration: number) => Promise<void>;
     sendGroupFileMessage: (file: File) => Promise<void>;
     addGroupReaction: (messageId: string, emoji: string) => void;
+    editGroupMessage: (messageId: string, content: string) => Promise<void>;
+    deleteGroupMessage: (messageId: string) => Promise<void>;
     createGroup: (data: { name: string; description?: string; isPrivate?: boolean; memberIds?: string[] }) => Promise<Group | null>;
     updateGroup: (groupId: string, data: { name?: string; description?: string }) => Promise<void>;
     deleteGroup: (groupId: string) => Promise<void>;
@@ -129,11 +131,44 @@ export function GroupChatProvider({ children }: { children: React.ReactNode }) {
             setTimeout(() => setGroupTyping(prev => { const copy = { ...prev }; delete copy[key]; return copy; }), 3000);
         };
 
+        const handleGroupMessageEdit = ({ messageId, groupId, content }: any) => {
+            const selected = selectedGroupRef.current;
+            if (selected?.id !== groupId) return;
+            setGroupMessages(prev => prev.map(m => m.id === messageId ? { ...m, content, isEdited: true } : m));
+        };
+
+        const handleGroupMessageDelete = ({ messageId, groupId }: any) => {
+            const selected = selectedGroupRef.current;
+            if (selected?.id !== groupId) return;
+            setGroupMessages(prev => prev.map(m => m.id === messageId ? { ...m, isDeleted: true, content: 'This message was deleted' } : m));
+        };
+
+        const handleGroupReaction = ({ messageId, groupId, userId, emoji, action }: any) => {
+            const selected = selectedGroupRef.current;
+            if (selected?.id !== groupId) return;
+            setGroupMessages(prev => prev.map(m => {
+                if (m.id !== messageId) return m;
+                const reactions = m.reactions || [];
+                if (action === 'add') {
+                    if (reactions.some(r => r.userId === userId && r.emoji === emoji)) return m;
+                    return { ...m, reactions: [...reactions, { emoji, userId }] };
+                } else {
+                    return { ...m, reactions: reactions.filter(r => !(r.userId === userId && r.emoji === emoji)) };
+                }
+            }));
+        };
+
         socketService.onGroupMessage(handleGroupMessage);
         socketService.onGroupTyping(handleGroupTyping);
+        socketService.onGroupMessageEdit(handleGroupMessageEdit);
+        socketService.onGroupMessageDelete(handleGroupMessageDelete);
+        socketService.onGroupReaction(handleGroupReaction);
         return () => {
             socketService.offGroupMessage(handleGroupMessage);
             socketService.offGroupTyping(handleGroupTyping);
+            socketService.offGroupMessageEdit(handleGroupMessageEdit);
+            socketService.offGroupMessageDelete(handleGroupMessageDelete);
+            socketService.offGroupReaction(handleGroupReaction);
         };
     }, [groups]);
 
@@ -145,8 +180,12 @@ export function GroupChatProvider({ children }: { children: React.ReactNode }) {
 
     const selectGroup = useCallback((group: Group | null) => {
         setSelectedGroup(group);
-        if (group) loadGroupMessages(group.id);
-        else setGroupMessages([]);
+        if (group) {
+            loadGroupMessages(group.id);
+            setGroupUnreadCounts(prev => ({ ...prev, [group.id]: 0 }));
+        } else {
+            setGroupMessages([]);
+        }
     }, [loadGroupMessages]);
 
     const sendGroupMessage = useCallback(async (content: string, type: MessageType, duration?: number, replyToId?: string) => {
@@ -184,7 +223,33 @@ export function GroupChatProvider({ children }: { children: React.ReactNode }) {
     }, []);
 
     const addGroupReaction = useCallback((messageId: string, emoji: string) => {
-        socketService.emitReaction(messageId, emoji, 'add');
+        const group = selectedGroupRef.current;
+        if (!group) return;
+        socketService.emitGroupReaction(group.id, messageId, emoji, 'add');
+    }, []);
+
+    const editGroupMessage = useCallback(async (messageId: string, content: string) => {
+        const group = selectedGroupRef.current;
+        if (!group) return;
+        try {
+            // Note: Since we are routing through sockets without a direct HTTP API inside GroupAPI natively yet,
+            // we will just emit the socket event which will handle it backend-side.
+            socketService.emitGroupMessageEdit(group.id, messageId, content);
+            setGroupMessages(prev => prev.map(m => m.id === messageId ? { ...m, content, isEdited: true } : m));
+        } catch {
+            toast.error('Failed to edit group message');
+        }
+    }, []);
+
+    const deleteGroupMessage = useCallback(async (messageId: string) => {
+        const group = selectedGroupRef.current;
+        if (!group) return;
+        try {
+            socketService.emitGroupMessageDelete(group.id, messageId);
+            setGroupMessages(prev => prev.map(m => m.id === messageId ? { ...m, isDeleted: true, content: 'This message was deleted' } : m));
+        } catch {
+            toast.error('Failed to delete group message');
+        }
     }, []);
 
     const createGroup = useCallback(async (data: any) => {
@@ -258,6 +323,7 @@ export function GroupChatProvider({ children }: { children: React.ReactNode }) {
             groups, selectedGroup, groupMessages, groupTyping, groupUnreadCounts, lastGroupMessages,
             selectGroup, loadGroups, loadGroupMessages,
             sendGroupMessage, sendGroupMediaMessage, sendGroupFileMessage, addGroupReaction,
+            editGroupMessage, deleteGroupMessage,
             createGroup, updateGroup, deleteGroup, leaveGroup, addMember, removeMember, regenerateInviteCode,
             hasMore, isLoadingMore, loadEarlierMessages
         }}>

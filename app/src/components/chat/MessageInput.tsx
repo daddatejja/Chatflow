@@ -21,9 +21,11 @@ interface MessageInputProps {
   onSendFile?: (file: File) => Promise<void>;
   replyToMessage?: any;
   onCancelReply?: () => void;
+  editingMessage?: any;
+  onCancelEdit?: () => void;
 }
 
-export function MessageInput({ chatId, chatName, onSend, onSendFile, replyToMessage, onCancelReply }: MessageInputProps = {}) {
+export function MessageInput({ chatId, chatName, onSend, onSendFile, replyToMessage, onCancelReply, editingMessage, onCancelEdit }: MessageInputProps = {}) {
   const {
     selectedChat,
     sendMessage,
@@ -58,6 +60,16 @@ export function MessageInput({ chatId, chatName, onSend, onSendFile, replyToMess
       if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
     };
   }, [activeChatId]);
+
+  // Handle edit message populate
+  useEffect(() => {
+    if (editingMessage && editingMessage.type === 'text') {
+      setMessage(editingMessage.content);
+      // Focus could be handled here with a ref
+    } else if (!editingMessage && !message) {
+      setMessage('');
+    }
+  }, [editingMessage]);
 
   const handleTypingStart = useCallback(() => {
     if (!activeChatId || isTypingRef.current) return;
@@ -99,6 +111,7 @@ export function MessageInput({ chatId, chatName, onSend, onSendFile, replyToMess
     } finally {
       setIsSending(false);
       if (onCancelReply) onCancelReply();
+      if (onCancelEdit) onCancelEdit();
     }
   };
 
@@ -293,7 +306,7 @@ export function MessageInput({ chatId, chatName, onSend, onSendFile, replyToMess
 
           {/* Text input container */}
           <div className="flex-1 flex flex-col min-w-0">
-            {replyToMessage && (
+            {replyToMessage && !editingMessage && (
               <div className="flex items-center justify-between bg-primary/10 rounded-t-xl px-3 py-1.5 border-b border-primary/20">
                 <div className="flex flex-col overflow-hidden">
                   <span className="text-xs font-semibold text-primary">Replying to {replyToMessage.sender?.name || 'Message'}</span>
@@ -306,14 +319,24 @@ export function MessageInput({ chatId, chatName, onSend, onSendFile, replyToMess
                 </button>
               </div>
             )}
+            {editingMessage && (
+              <div className="flex items-center justify-between bg-primary/10 rounded-t-xl px-3 py-1.5 border-b border-primary/20">
+                <div className="flex flex-col overflow-hidden">
+                  <span className="text-xs font-semibold text-primary">Editing message</span>
+                </div>
+                <button onClick={() => { if (onCancelEdit) onCancelEdit(); setMessage(''); }} className="text-muted-foreground hover:text-foreground p-1 transition-colors">
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            )}
             <div className="relative group flex-1">
               <textarea
                 value={message}
                 onChange={(e) => handleMessageChange(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder={`Message ${activeChatName || ''}...`}
+                placeholder={editingMessage ? "Edit message..." : `Message ${activeChatName || ''}...`}
                 rows={1}
-                className={`w-full bg-secondary/50 border border-transparent focus:bg-background focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all ${replyToMessage ? 'rounded-b-2xl rounded-t-none' : 'rounded-2xl'} h-12 text-base shadow-sm resize-none px-4 py-3 text-foreground placeholder:text-muted-foreground outline-none leading-[1.5] overflow-y-hidden`}
+                className={`w-full bg-secondary/50 border border-transparent focus:bg-background focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all ${(replyToMessage || editingMessage) ? 'rounded-b-2xl rounded-t-none' : 'rounded-2xl'} h-12 text-base shadow-sm resize-none px-4 py-3 text-foreground placeholder:text-muted-foreground outline-none leading-[1.5] overflow-y-hidden`}
                 style={{ minHeight: '48px', maxHeight: '120px' }}
                 onInput={(e) => {
                   const t = e.currentTarget;

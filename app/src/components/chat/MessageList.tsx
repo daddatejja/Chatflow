@@ -295,7 +295,7 @@ function MessageBubble({ message, isOwn, showAvatar, otherUser, onReaction, onEd
                 {/* Text */}
                 {message.type?.toLowerCase() === 'text' && (
                   message.content === '[POLL]' ? (
-                    <PollWidget messageId={message.id} />
+                    <PollWidget messageId={message.id} isOwn={isOwn} />
                   ) : (
                     <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">{message.content}</p>
                   )

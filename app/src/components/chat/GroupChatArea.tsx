@@ -14,10 +14,10 @@ const REACTION_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '😡'];
 
 export function GroupChatArea() {
     const { currentUser: user } = useChat();
-    const { 
-        selectedGroup, groupMessages, sendGroupMessage, sendGroupMediaMessage, 
+    const {
+        selectedGroup, groupMessages, sendGroupMessage, sendGroupMediaMessage,
         sendGroupFileMessage, editGroupMessage, deleteGroupMessage, addGroupReaction,
-        groupTyping, hasMore, isLoadingMore, loadEarlierMessages 
+        groupTyping, hasMore, isLoadingMore, loadEarlierMessages
     } = useGroupChat();
     const [showInfo, setShowInfo] = useState(false);
     const observerTarget = useRef<HTMLDivElement>(null);
@@ -170,8 +170,8 @@ export function GroupChatArea() {
     );
 }
 
-export function GroupMessageBubble({ 
-    msg, isMine, showAvatar, user, groupMessages, onReply, onEdit, onDelete, onReaction 
+export function GroupMessageBubble({
+    msg, isMine, showAvatar, user, groupMessages, onReply, onEdit, onDelete, onReaction
 }: {
     msg: GroupMessage;
     isMine: boolean;
@@ -200,7 +200,7 @@ export function GroupMessageBubble({
     }, {});
 
     return (
-        <div 
+        <div
             className={`flex gap-3 max-w-[80%] ${isMine ? 'ml-auto flex-row-reverse' : ''}`}
             onMouseEnter={handleMouseEnter}
             onMouseLeave={handleMouseLeave}
@@ -290,7 +290,7 @@ export function GroupMessageBubble({
 
                         {msg.type === 'text' && (
                             msg.content === '[POLL]' ? (
-                                <PollWidget messageId={msg.id} />
+                                <PollWidget messageId={msg.id} isOwn={isMine} />
                             ) : (
                                 <p className="whitespace-pre-wrap break-words">{msg.content}</p>
                             )

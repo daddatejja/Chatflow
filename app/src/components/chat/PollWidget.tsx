@@ -6,9 +6,10 @@ import { socketService } from '@/services/socket';
 
 interface PollWidgetProps {
     messageId: string;
+    isOwn?: boolean;
 }
 
-export function PollWidget({ messageId }: PollWidgetProps) {
+export function PollWidget({ messageId, isOwn = false }: PollWidgetProps) {
     const [poll, setPoll] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const { currentUser } = useChat();
@@ -45,7 +46,7 @@ export function PollWidget({ messageId }: PollWidgetProps) {
         };
     }, [messageId, poll?.id]);
 
-    if (loading) return <div className="p-4 text-sm text-muted-foreground animate-pulse">Loading poll...</div>;
+    if (loading) return <div className={`p-4 text-sm animate-pulse ${isOwn ? 'text-primary-foreground/70' : 'text-muted-foreground'}`}>Loading poll...</div>;
     if (!poll) return null;
 
     const totalVotes = poll.options.reduce((sum: number, opt: any) => sum + opt.votes.length, 0);
@@ -91,17 +92,17 @@ export function PollWidget({ messageId }: PollWidgetProps) {
     const isEnded = poll.endsAt && new Date(poll.endsAt) < new Date();
 
     return (
-        <div className="bg-card/50 border border-border rounded-xl p-4 my-2 max-w-sm">
+        <div className={`border rounded-xl p-4 my-2 w-full min-w-[280px] max-w-sm transition-colors ${isOwn ? 'bg-primary-foreground/10 border-primary-foreground/20 text-primary-foreground' : 'bg-card/50 border-border text-foreground'}`}>
             <div className="flex items-start gap-3 mb-4">
-                <div className="bg-primary/10 p-2 rounded-lg">
-                    <FileBarChart2 className="w-5 h-5 text-primary" />
+                <div className={`p-2 rounded-lg ${isOwn ? 'bg-primary-foreground/20' : 'bg-primary/10'}`}>
+                    <FileBarChart2 className={`w-5 h-5 ${isOwn ? 'text-primary-foreground' : 'text-primary'}`} />
                 </div>
                 <div>
                     <h4 className="font-semibold text-sm leading-none mb-1.5">{poll.question}</h4>
-                    <p className="text-xs text-muted-foreground flex gap-2">
+                    <p className={`text-xs flex gap-2 ${isOwn ? 'text-primary-foreground/80' : 'text-muted-foreground'}`}>
                         <span>{poll.isMultiple ? 'Multiple choices allowed' : 'Select one option'}</span>
                         {poll.isAnonymous && <span>• Anonymous voting</span>}
-                        {isEnded && <span className="text-red-500 font-medium">• Ended</span>}
+                        {isEnded && <span className={`${isOwn ? 'text-red-200' : 'text-red-500'} font-medium`}>• Ended</span>}
                     </p>
                 </div>
             </div>
@@ -118,23 +119,23 @@ export function PollWidget({ messageId }: PollWidgetProps) {
                                 onClick={() => handleVote(option.id)}
                                 disabled={isEnded}
                                 className={`w-full text-left p-2.5 rounded-lg border transition-all duration-200 ${isSelected
-                                    ? 'border-primary bg-primary/5'
-                                    : 'border-border/50 bg-background/50 hover:bg-accent/50 hover:border-border'
+                                    ? (isOwn ? 'border-primary-foreground bg-primary-foreground/20' : 'border-primary bg-primary/5')
+                                    : (isOwn ? 'border-primary-foreground/30 bg-primary-foreground/5 hover:bg-primary-foreground/10 hover:border-primary-foreground/50' : 'border-border/50 bg-background/50 hover:bg-accent/50 hover:border-border')
                                     } ${isEnded ? 'cursor-default opacity-80' : 'cursor-pointer'}`}
                             >
                                 <div className="flex justify-between items-center mb-1.5 relative z-10">
-                                    <span className={`text-sm font-medium ${isSelected ? 'text-primary' : ''}`}>
+                                    <span className={`text-sm font-medium ${isSelected ? (isOwn ? 'text-primary-foreground' : 'text-primary') : ''}`}>
                                         {option.text}
                                     </span>
                                     <div className="flex items-center gap-2">
-                                        {isSelected && <CheckCircle2 className="w-4 h-4 text-primary" />}
-                                        <span className="text-xs font-medium">{percentage}%</span>
+                                        {isSelected && <CheckCircle2 className={`w-4 h-4 ${isOwn ? 'text-primary-foreground' : 'text-primary'}`} />}
+                                        <span className={`text-xs font-medium ${isOwn ? 'text-primary-foreground/90' : ''}`}>{percentage}%</span>
                                     </div>
                                 </div>
 
-                                <div className="h-1.5 w-full bg-secondary/50 rounded-full overflow-hidden">
+                                <div className={`h-1.5 w-full rounded-full overflow-hidden ${isOwn ? 'bg-primary-foreground/20' : 'bg-secondary/50'}`}>
                                     <div
-                                        className={`h-full transition-all duration-500 rounded-full ${isSelected ? 'bg-primary' : 'bg-muted-foreground/30'}`}
+                                        className={`h-full transition-all duration-500 rounded-full ${isSelected ? (isOwn ? 'bg-primary-foreground' : 'bg-primary') : (isOwn ? 'bg-primary-foreground/40' : 'bg-muted-foreground/30')}`}
                                         style={{ width: `${percentage}%` }}
                                     />
                                 </div>
@@ -144,7 +145,7 @@ export function PollWidget({ messageId }: PollWidgetProps) {
                 })}
             </div>
 
-            <div className="mt-4 text-xs text-muted-foreground text-center font-medium">
+            <div className={`mt-4 text-xs text-center font-medium ${isOwn ? 'text-primary-foreground/80' : 'text-muted-foreground'}`}>
                 {totalVotes} {totalVotes === 1 ? 'vote' : 'votes'}
             </div>
         </div>

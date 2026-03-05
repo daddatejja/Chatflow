@@ -5,7 +5,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { formatDuration } from '@/lib/utils';
 import {
   Phone, Video, Mic, MicOff, VideoOff, PhoneOff,
-  Volume2, VolumeX, Monitor, MonitorOff,
+  Volume2, Monitor, MonitorOff,
   Maximize2, Minimize2
 } from 'lucide-react';
 import { useState, useEffect, useRef, useCallback } from 'react';
@@ -116,25 +116,13 @@ export function CallModal() {
     }
   }, [callState.status, callState.callType, callState.remoteUser]);
 
-  // Video upgrade listener
+  // Reset upgrade state when call ends or restarts
   useEffect(() => {
-    const handleVideoUpgrade = (data: any) => {
-      if (data.type === 'request') {
-        setPendingVideoUpgrade(true);
-      } else if (data.type === 'accepted') {
-        // Remote user accepted our upgrade request
-        setVideoUpgradeRequested(false);
-        setCurrentCallType('video');
-        toast.success('Video call upgrade accepted!');
-      } else if (data.type === 'rejected') {
-        setVideoUpgradeRequested(false);
-        toast.info('Video upgrade was declined');
-      }
-    };
-
-    socketService.onVideoUpgrade(handleVideoUpgrade);
-    return () => socketService.offVideoUpgrade(handleVideoUpgrade);
-  }, []);
+    if (!callState.isActive || callState.status === 'calling' || callState.status === 'ringing') {
+      setVideoUpgradeRequested(false);
+      setPendingVideoUpgrade(false);
+    }
+  }, [callState.isActive, callState.status]);
 
   // Duration timer
   useEffect(() => {
@@ -200,6 +188,32 @@ export function CallModal() {
       }
     }
   }, [isMuted]);
+
+  // Video upgrade listener (must be after attachStreams declaration)
+  useEffect(() => {
+    const handleVideoUpgrade = async (data: any) => {
+      if (data.type === 'request') {
+        setPendingVideoUpgrade(true);
+      } else if (data.type === 'accepted') {
+        // Remote user accepted our upgrade request — enable OUR camera too
+        setVideoUpgradeRequested(false);
+        const track = await webrtcService.addVideoTrack();
+        if (track) {
+          setCurrentCallType('video');
+          attachStreams();
+          toast.success('Video call upgrade accepted!');
+        } else {
+          toast.error('Could not enable camera');
+        }
+      } else if (data.type === 'rejected') {
+        setVideoUpgradeRequested(false);
+        toast.info('Video upgrade was declined');
+      }
+    };
+
+    socketService.onVideoUpgrade(handleVideoUpgrade);
+    return () => socketService.offVideoUpgrade(handleVideoUpgrade);
+  }, [attachStreams]);
 
   useEffect(() => {
     if (callState.status === 'connected') {
@@ -281,17 +295,23 @@ export function CallModal() {
   }, [isScreenSharing, callState.remoteUser, attachStreams]);
 
   const upgradeToVideo = useCallback(async () => {
-    if (callState.remoteUser) {
-      socketService.requestVideoUpgrade(callState.remoteUser.id);
+    const peerId = callState.remoteUser?.id || socketService.getCurrentPeerId();
+    if (peerId) {
+      console.log('[CallModal] Sending video upgrade request to', peerId);
+      socketService.requestVideoUpgrade(peerId);
       setVideoUpgradeRequested(true);
       toast.info('Video upgrade request sent...');
+    } else {
+      console.warn('[CallModal] No peer ID for video upgrade');
     }
   }, [callState.remoteUser]);
 
   const acceptVideoUpgrade = useCallback(async () => {
     setPendingVideoUpgrade(false);
-    if (callState.remoteUser) {
-      socketService.acceptVideoUpgrade(callState.remoteUser.id);
+    const peerId = callState.remoteUser?.id || socketService.getCurrentPeerId();
+    if (peerId) {
+      console.log('[CallModal] Accepting video upgrade from', peerId);
+      socketService.acceptVideoUpgrade(peerId);
     }
     const track = await webrtcService.addVideoTrack();
     if (track) {
@@ -305,11 +325,23 @@ export function CallModal() {
 
   const rejectVideoUpgrade = useCallback(() => {
     setPendingVideoUpgrade(false);
-    if (callState.remoteUser) {
-      socketService.rejectVideoUpgrade(callState.remoteUser.id);
+    const peerId = callState.remoteUser?.id || socketService.getCurrentPeerId();
+    if (peerId) {
+      socketService.rejectVideoUpgrade(peerId);
     }
     toast.info('Video upgrade declined');
   }, [callState.remoteUser]);
+
+  // Speaker toggle - switch between earpiece and speakerphone on mobile
+  const toggleSpeaker = useCallback(() => {
+    const audioEl = remoteAudioRef.current;
+    if (audioEl && 'setSinkId' in audioEl) {
+      // setSinkId API - toggle between default (earpiece) and speakerphone
+      // On most mobile browsers, '' = default output, 'default' = speakerphone
+      (audioEl as any).setSinkId(isSpeakerOn ? '' : 'default').catch(console.warn);
+    }
+    setIsSpeakerOn(p => !p);
+  }, [isSpeakerOn]);
 
   const downgradeToAudio = useCallback(async () => {
     await webrtcService.removeVideoTrack();
@@ -643,15 +675,17 @@ export function CallModal() {
                 />
               )}
 
-              {/* Speaker */}
-              <ControlButton
-                active={!isSpeakerOn}
-                activeClassName="bg-red-500 hover:bg-red-600"
-                inactiveClassName="bg-white/15 hover:bg-white/25"
-                onClick={() => setIsSpeakerOn(p => !p)}
-                label={isSpeakerOn ? 'Mute speaker' : 'Speaker on'}
-                icon={isSpeakerOn ? <Volume2 className="w-6 h-6" /> : <VolumeX className="w-6 h-6" />}
-              />
+              {/* Speaker button - useful on mobile to toggle earpiece vs loudspeaker */}
+              {isMobile && !isVideoCall && !isScreenSharing && (
+                <ControlButton
+                  active={isSpeakerOn}
+                  activeClassName="bg-blue-500 hover:bg-blue-600"
+                  inactiveClassName="bg-white/15 hover:bg-white/25"
+                  onClick={toggleSpeaker}
+                  label={isSpeakerOn ? 'Loudspeaker' : 'Earpiece'}
+                  icon={isSpeakerOn ? <Volume2 className="w-6 h-6" /> : <Phone className="w-6 h-6" />}
+                />
+              )}
 
               {/* End call */}
               <div className="flex flex-col items-center gap-1">

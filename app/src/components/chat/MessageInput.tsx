@@ -121,9 +121,9 @@ export function MessageInput({ chatId, chatName, onSend, onSendFile, replyToMess
     try {
       let createdMessage;
       if (chatId) { // Group
-        createdMessage = await socketService.sendGroupMessage(activeChatId, '[POLL]', 'TEXT');
+        createdMessage = await socketService.sendGroupMessage(activeChatId, '[POLL]', 'text');
       } else {
-        createdMessage = await socketService.sendMessage(activeChatId, '[POLL]', 'TEXT');
+        createdMessage = await socketService.sendMessage(activeChatId, '[POLL]', 'text');
       }
 
       if (createdMessage && createdMessage.id) {

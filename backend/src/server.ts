@@ -103,6 +103,17 @@ app.use("/uploads", express.static(uploadsDir));
 // File/voice/video upload endpoints
 app.use("/api/messages/upload", uploadRoutes);
 
+// Health check endpoint
+app.get("/health", async (req: express.Request, res: express.Response) => {
+  try {
+    // Check DB connection
+    await prisma.$queryRaw`SELECT 1`;
+    res.status(200).json({ status: "ok", message: "Server is running, database connected successfully." });
+  } catch (error) {
+    res.status(500).json({ status: "error", message: "Server is running, but database connection failed." });
+  }
+});
+
 // Register main API routes
 app.use("/api", routes);
 

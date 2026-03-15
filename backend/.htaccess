@@ -2,12 +2,12 @@
 # This MUST be in the document root of the API subdomain (chatflowapi.daddatejja.dev)
 
 <IfModule mod_headers.c>
-  # Allow CORS from the frontend domain
-  SetEnvIf Origin "https://chatflow\.daddatejja\.dev$" CORS_ORIGIN=$0
-
+  # Robust CORS for cPanel
+  SetEnvIfNoCase Origin "https?://(chatflow\.daddatejja\.dev|localhost:5173)$" CORS_ORIGIN=$0
+  
   Header always set Access-Control-Allow-Origin "%{CORS_ORIGIN}e" env=CORS_ORIGIN
   Header always set Access-Control-Allow-Methods "GET, POST, PUT, PATCH, DELETE, OPTIONS"
-  Header always set Access-Control-Allow-Headers "Content-Type, Authorization, X-Requested-With"
+  Header always set Access-Control-Allow-Headers "Content-Type, Authorization, X-Requested-With, Accept"
   Header always set Access-Control-Allow-Credentials "true"
   Header always set Access-Control-Max-Age "86400"
 </IfModule>

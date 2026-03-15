@@ -44,20 +44,24 @@ app.set("io", io);
 const PORT = process.env.PORT || 3000;
 
 // Handle preflight OPTIONS requests FIRST (critical for cPanel/Apache proxy)
-app.options("*", (_req, res) => {
-  const origin = _req.headers.origin;
+app.options("*", (req, res) => {
+  const origin = req.headers.origin;
   if (origin && allowedOrigins.includes(origin)) {
     res.setHeader("Access-Control-Allow-Origin", origin);
+    res.setHeader("Access-Control-Allow-Credentials", "true");
+  } else if (!origin) {
+    // For tools like Postman or mobile apps
+    res.setHeader("Access-Control-Allow-Origin", "*");
   }
+  
   res.setHeader(
     "Access-Control-Allow-Methods",
     "GET, POST, PUT, PATCH, DELETE, OPTIONS",
   );
   res.setHeader(
     "Access-Control-Allow-Headers",
-    "Content-Type, Authorization, X-Requested-With",
+    "Content-Type, Authorization, X-Requested-With, Accept",
   );
-  res.setHeader("Access-Control-Allow-Credentials", "true");
   res.setHeader("Access-Control-Max-Age", "86400");
   res.status(204).end();
 });
@@ -75,7 +79,7 @@ app.use(
     },
     credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept"],
   }),
 );
 
@@ -108,9 +112,19 @@ app.get("/health", async (req: express.Request, res: express.Response) => {
   try {
     // Check DB connection
     await prisma.$queryRaw`SELECT 1`;
-    res.status(200).json({ status: "ok", message: "Server is running, database connected successfully." });
+    res.status(200).json({ 
+      status: "ok", 
+      message: "Server is running, database connected successfully.",
+      env: process.env.NODE_ENV,
+      allowedOrigins: allowedOrigins
+    });
   } catch (error) {
-    res.status(500).json({ status: "error", message: "Server is running, but database connection failed." });
+    res.status(500).json({ 
+      status: "error", 
+      message: "Server is running, but database connection failed.",
+      env: process.env.NODE_ENV,
+      allowedOrigins: allowedOrigins
+    });
   }
 });
 

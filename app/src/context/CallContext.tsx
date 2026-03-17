@@ -35,8 +35,11 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const selectedChatRef = useRef(selectedChat);
+  const recordingDurationRef = useRef(0);
+  const callLogIdRef = useRef<string | null>(null);
 
   useEffect(() => { selectedChatRef.current = selectedChat; }, [selectedChat]);
+  useEffect(() => { recordingDurationRef.current = recordingDuration; }, [recordingDuration]);
 
   // Socket listeners for calls
   useEffect(() => {
@@ -45,7 +48,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
         const caller = users.find(u => u.id === data.callerId);
         setCallState({ isActive: true, callType: data.callType, status: 'ringing', remoteUser: caller });
         if (data.callLogId) {
-          (window as any)._currentCallLogId = data.callLogId;
+          callLogIdRef.current = data.callLogId;
         }
       } else if (data.type === 'accepted') {
         setCallState(prev => {
@@ -118,7 +121,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
       if (callState.startTime) {
         duration = Math.floor((new Date().getTime() - callState.startTime.getTime()) / 1000);
       }
-      socketService.endCall(callState.remoteUser.id, (window as any)._currentCallLogId, duration);
+      socketService.endCall(callState.remoteUser.id, callLogIdRef.current || undefined, duration);
     }
     setCallState({ isActive: false, callType: 'audio', status: 'idle' });
     socketService.setCurrentPeerId(null);
@@ -127,7 +130,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
 
   const acceptCall = useCallback(async () => {
     if (callState.remoteUser) {
-      socketService.acceptCall(callState.remoteUser.id, (window as any)._currentCallLogId);
+      socketService.acceptCall(callState.remoteUser.id, callLogIdRef.current || undefined);
       socketService.setCurrentPeerId(callState.remoteUser.id);
       setCallState(prev => ({ ...prev, status: 'connected', startTime: new Date() }));
       try {
@@ -142,7 +145,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
 
   const rejectCall = useCallback(() => {
     if (callState.remoteUser) {
-      socketService.rejectCall(callState.remoteUser.id, (window as any)._currentCallLogId);
+      socketService.rejectCall(callState.remoteUser.id, callLogIdRef.current || undefined);
     }
     setCallState({ isActive: false, callType: 'audio', status: 'idle' });
     webrtcService.cleanup();
@@ -174,7 +177,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
       mediaRecorder.onstop = async () => {
         if (chunksRef.current.length > 0) {
           const blob = new Blob(chunksRef.current, { type: mimeType || (type === 'voice' ? 'audio/webm' : 'video/webm') });
-          await sendMediaMessage(blob, type, recordingDuration);
+          await sendMediaMessage(blob, type, recordingDurationRef.current);
         }
         stream.getTracks().forEach(t => t.stop());
       };
@@ -192,7 +195,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
       console.error('Error starting recording:', error);
       toast.error('Could not access camera/microphone');
     }
-  }, [sendMediaMessage, recordingDuration]);
+  }, [sendMediaMessage]);
 
   const stopRecording = useCallback(() => {
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {

@@ -62,9 +62,9 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="bg-white border-b border-gray-200 px-6 py-4">
+      <header className="bg-card border-b border-border px-6 py-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg flex items-center justify-center">
@@ -72,7 +72,7 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
             </div>
             <div>
               <h1 className="text-xl font-bold">Admin Dashboard</h1>
-              <p className="text-sm text-gray-500">ChatFlow Administration</p>
+              <p className="text-sm text-muted-foreground">ChatFlow Administration</p>
             </div>
           </div>
           <Button variant="outline" onClick={onLogout}>
@@ -137,10 +137,10 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
                   <div className="space-y-2">
                     {stats?.charts.messagesPerDay.map((day) => (
                       <div key={day.date} className="flex items-center gap-4">
-                        <span className="w-24 text-sm text-gray-500">
+                        <span className="w-24 text-sm text-muted-foreground">
                           {new Date(day.date).toLocaleDateString()}
                         </span>
-                        <div className="flex-1 h-8 bg-gray-100 rounded-full overflow-hidden">
+                        <div className="flex-1 h-8 bg-muted rounded-full overflow-hidden">
                           <div
                             className="h-full bg-blue-500 rounded-full transition-all"
                             style={{
@@ -168,10 +168,10 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
                   <div className="space-y-2">
                     {stats?.charts.usersPerDay.map((day) => (
                       <div key={day.date} className="flex items-center gap-4">
-                        <span className="w-24 text-sm text-gray-500">
+                        <span className="w-24 text-sm text-muted-foreground">
                           {new Date(day.date).toLocaleDateString()}
                         </span>
-                        <div className="flex-1 h-8 bg-gray-100 rounded-full overflow-hidden">
+                        <div className="flex-1 h-8 bg-muted rounded-full overflow-hidden">
                           <div
                             className="h-full bg-green-500 rounded-full transition-all"
                             style={{
@@ -230,7 +230,7 @@ function StatCard({
     <Card>
       <CardContent className="p-6">
         <div className="flex items-center justify-between">
-          <div className="p-2 bg-blue-100 rounded-lg text-blue-600">
+          <div className="p-2 bg-primary/10 rounded-lg text-primary">
             {icon}
           </div>
           {trend && (
@@ -241,8 +241,8 @@ function StatCard({
         </div>
         <div className="mt-4">
           <p className="text-3xl font-bold">{value.toLocaleString()}</p>
-          <p className="text-sm text-gray-500">{title}</p>
-          {subtitle && <p className="text-xs text-gray-400 mt-1">{subtitle}</p>}
+          <p className="text-sm text-muted-foreground">{title}</p>
+          {subtitle && <p className="text-xs text-muted-foreground mt-1">{subtitle}</p>}
         </div>
       </CardContent>
     </Card>
@@ -324,8 +324,9 @@ function UsersManagement() {
           />
         </div>
         <ScrollArea className="h-[500px]">
+          <div className="overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-gray-50">
+            <thead className="bg-muted">
               <tr>
                 <th className="px-4 py-2 text-left">User</th>
                 <th className="px-4 py-2 text-left">Status</th>
@@ -345,7 +346,7 @@ function UsersManagement() {
                       />
                       <div>
                         <p className="font-medium">{user.name}</p>
-                        <p className="text-sm text-gray-500">{user.email}</p>
+                        <p className="text-sm text-muted-foreground">{user.email}</p>
                       </div>
                     </div>
                   </td>
@@ -364,7 +365,7 @@ function UsersManagement() {
                       )}
                     </div>
                   </td>
-                  <td className="px-4 py-3 text-sm text-gray-500">
+                  <td className="px-4 py-3 text-sm text-muted-foreground">
                     {new Date(user.createdAt).toLocaleDateString()}
                   </td>
                   <td className="px-4 py-3">
@@ -396,6 +397,7 @@ function UsersManagement() {
               ))}
             </tbody>
           </table>
+          </div>
         </ScrollArea>
       </CardContent>
     </Card>
@@ -453,7 +455,7 @@ function GroupsManagement() {
                   />
                   <div>
                     <p className="font-medium">{group.name}</p>
-                    <p className="text-sm text-gray-500">
+                    <p className="text-sm text-muted-foreground">
                       Owner: {group.owner.name} • {group._count.members} members • {group._count.messages} messages
                     </p>
                   </div>
@@ -504,11 +506,11 @@ function AdminLogs() {
               <div key={log.id} className="p-3 border rounded-lg text-sm">
                 <div className="flex items-center justify-between">
                   <span className="font-medium">{log.action}</span>
-                  <span className="text-gray-500">
+                  <span className="text-muted-foreground">
                     {new Date(log.createdAt).toLocaleString()}
                   </span>
                 </div>
-                <p className="text-gray-600 mt-1">
+                <p className="text-muted-foreground mt-1">
                   By: {log.admin?.name || 'Unknown'} • Entity: {log.entityType}
                 </p>
               </div>

@@ -44,7 +44,7 @@ export function ContactList({ onContactSelect }: { onContactSelect?: () => void 
                     <AvatarImage src={currentUser.avatar || ''} />
                     <AvatarFallback>{currentUser.name?.[0] || 'U'}</AvatarFallback>
                   </Avatar>
-                  <span className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-white ${getStatusColor(currentUser.status || 'offline')}`} />
+                  <span className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-background ${getStatusColor(currentUser.status || 'offline')}`} />
                 </div>
                 <div>
                   <h2 className="font-semibold text-foreground text-sm">{currentUser.name}</h2>

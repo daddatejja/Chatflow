@@ -23,7 +23,7 @@ export function ChatHeader() {
         <Button
           variant="ghost"
           size="icon"
-          className="lg:hidden text-muted-foreground hover:text-foreground hover:bg-accent"
+          className="md:hidden text-muted-foreground hover:text-foreground hover:bg-accent"
           onClick={() => selectChat(null)}
         >
           <ArrowLeft className="w-5 h-5" />

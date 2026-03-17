@@ -4,7 +4,7 @@ import { formatTime, formatDuration, formatFileSize, getFileIcon } from '@/lib/u
 import { useEffect, useRef, useState } from 'react';
 import {
   Play, Pause, Mic, Video, Check, CheckCheck,
-  Download, Pencil, Trash2, X, Check as CheckIcon, Reply
+  Download, Pencil, Trash2, X, Reply
 } from 'lucide-react';
 import type { Message, User } from '@/types';
 import { PollWidget } from './PollWidget';
@@ -200,6 +200,10 @@ function MessageBubble({ message, isOwn, showAvatar, otherUser, onReaction, onEd
       className={`flex ${isOwn ? 'justify-end' : 'justify-start'} items-end gap-2 group mb-1`}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
+      onClick={(e) => {
+        if ((e.target as HTMLElement).closest('button, a')) return;
+        setShowReactionPicker(prev => !prev);
+      }}
     >
       {/* Avatar */}
       {!isOwn && showAvatar && (
@@ -276,7 +280,7 @@ function MessageBubble({ message, isOwn, showAvatar, otherUser, onReaction, onEd
                 onKeyDown={e => { if (e.key === 'Enter') finishEdit(); if (e.key === 'Escape') setIsEditing(false); }}
                 className="flex-1 bg-transparent border-b border-primary-foreground/50 focus:outline-none text-sm"
               />
-              <button onClick={finishEdit} className="opacity-80 hover:opacity-100"><CheckIcon className="w-4 h-4" /></button>
+              <button onClick={finishEdit} className="opacity-80 hover:opacity-100"><Check className="w-4 h-4" /></button>
               <button onClick={() => setIsEditing(false)} className="opacity-80 hover:opacity-100"><X className="w-4 h-4" /></button>
             </div>
           ) : (
@@ -495,7 +499,7 @@ function ImageMessage({ message }: { message: Message }) {
           src={src}
           alt={message.fileName || 'Image'}
           className="max-w-[280px] max-h-[320px] object-cover rounded-xl hover:opacity-90 transition-opacity"
-          onError={(e) => { (e.target as HTMLImageElement).src = ''; }}
+          onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
         />
         {message.fileName && (
           <p className="text-xs opacity-70 mt-1 truncate">{message.fileName}</p>

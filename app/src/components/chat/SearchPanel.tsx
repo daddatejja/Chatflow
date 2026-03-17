@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Search, Hash, MessageSquare, Loader2, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -20,19 +20,7 @@ export function SearchPanel({ onClose, onMessageSelect }: SearchPanelProps) {
     const [results, setResults] = useState<any[]>([]);
     const [isSearching, setIsSearching] = useState(false);
 
-    useEffect(() => {
-        const timer = setTimeout(() => {
-            if (query.trim().length >= 2) {
-                performSearch(query.trim());
-            } else {
-                setResults([]);
-            }
-        }, 500);
-
-        return () => clearTimeout(timer);
-    }, [query]);
-
-    const performSearch = async (searchQuery: string) => {
+    const performSearch = useCallback(async (searchQuery: string) => {
         setIsSearching(true);
         try {
             const res = await messageAPI.searchMessages(searchQuery);
@@ -43,7 +31,19 @@ export function SearchPanel({ onClose, onMessageSelect }: SearchPanelProps) {
         } finally {
             setIsSearching(false);
         }
-    };
+    }, []);
+
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            if (query.trim().length >= 2) {
+                performSearch(query.trim());
+            } else {
+                setResults([]);
+            }
+        }, 500);
+
+        return () => clearTimeout(timer);
+    }, [query, performSearch]);
 
     const getChatName = (msg: any) => {
         if (msg.groupId) return msg.group?.name;

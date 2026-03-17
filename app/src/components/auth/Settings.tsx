@@ -7,12 +7,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-// import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { userAPI, authAPI, passkeyAPI, sessionAPI } from '@/services/api';
 import { Camera, Fingerprint, Shield, Smartphone, LogOut, Monitor, Globe, Clock, Trash2, KeyRound, Bell } from 'lucide-react';
 import { subscribeToPushNotifications, unsubscribeFromPushNotifications } from '@/services/pushNotifications';
+import { toast } from 'sonner';
 
 interface SettingsProps {
   user: any;
@@ -31,7 +31,7 @@ export function Settings({ user, onUpdateUser, onLogout, onClose }: SettingsProp
         </DialogHeader>
 
         <Tabs defaultValue="profile" className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-2 h-auto sm:grid-cols-4 sm:h-10 mb-8">
             <TabsTrigger value="profile">Profile</TabsTrigger>
             <TabsTrigger value="security">Security</TabsTrigger>
             <TabsTrigger value="passkeys">Passkeys</TabsTrigger>
@@ -74,6 +74,7 @@ function ProfileSettings({ user, onUpdateUser }: { user: any; onUpdateUser: (use
       onUpdateUser({ ...user, name: response.data.user.name });
     } catch (error) {
       console.error('Failed to update profile:', error);
+      toast.error('Failed to update profile');
     } finally {
       setLoading(false);
     }
@@ -89,6 +90,7 @@ function ProfileSettings({ user, onUpdateUser }: { user: any; onUpdateUser: (use
       onUpdateUser({ ...user, avatar: response.data.avatar });
     } catch (error) {
       console.error('Failed to upload avatar:', error);
+      toast.error('Failed to upload avatar');
     } finally {
       setAvatarLoading(false);
     }
@@ -101,6 +103,7 @@ function ProfileSettings({ user, onUpdateUser }: { user: any; onUpdateUser: (use
       onUpdateUser({ ...user, avatar: response.data.avatar });
     } catch (error) {
       console.error('Failed to generate avatar:', error);
+      toast.error('Failed to generate avatar');
     } finally {
       setAvatarLoading(false);
     }
@@ -113,6 +116,7 @@ function ProfileSettings({ user, onUpdateUser }: { user: any; onUpdateUser: (use
       onUpdateUser({ ...user, avatar: response.data.avatar });
     } catch (error) {
       console.error('Failed to generate random avatar:', error);
+      toast.error('Failed to generate random avatar');
     } finally {
       setAvatarLoading(false);
     }
@@ -218,6 +222,7 @@ function SecuritySettings({ user, onUpdateUser }: { user: any; onUpdateUser: (us
       setShowMFASetup(true);
     } catch (error) {
       console.error('Failed to setup MFA:', error);
+      toast.error('Failed to setup MFA');
     }
   };
 
@@ -229,6 +234,7 @@ function SecuritySettings({ user, onUpdateUser }: { user: any; onUpdateUser: (us
       setMfaCode('');
     } catch (error) {
       console.error('Failed to verify MFA:', error);
+      toast.error('Failed to verify MFA code');
     }
   };
 
@@ -239,6 +245,7 @@ function SecuritySettings({ user, onUpdateUser }: { user: any; onUpdateUser: (us
       setMfaCode('');
     } catch (error) {
       console.error('Failed to disable MFA:', error);
+      toast.error('Failed to disable MFA');
     }
   };
 
@@ -351,7 +358,7 @@ function ChangePasswordForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (newPassword !== confirmPassword) {
-      alert('Passwords do not match');
+      toast.error('Passwords do not match');
       return;
     }
 
@@ -361,9 +368,10 @@ function ChangePasswordForm() {
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
-      alert('Password changed successfully');
+      toast.success('Password changed successfully');
     } catch (error) {
       console.error('Failed to change password:', error);
+      toast.error('Failed to change password');
     } finally {
       setLoading(false);
     }
@@ -417,6 +425,7 @@ function PasskeySettings() {
       setPasskeys(response.data.passkeys);
     } catch (error) {
       console.error('Failed to load passkeys:', error);
+      toast.error('Failed to load passkeys');
     }
   };
 
@@ -454,6 +463,7 @@ function PasskeySettings() {
       loadPasskeys();
     } catch (error) {
       console.error('Failed to register passkey:', error);
+      toast.error('Failed to register passkey');
     } finally {
       setLoading(false);
     }
@@ -465,6 +475,7 @@ function PasskeySettings() {
       loadPasskeys();
     } catch (error) {
       console.error('Failed to delete passkey:', error);
+      toast.error('Failed to delete passkey');
     }
   };
 
@@ -518,6 +529,7 @@ function SessionSettings({ onLogout }: { onLogout: () => void }) {
       setSessions(response.data.sessions);
     } catch (error) {
       console.error('Failed to load sessions:', error);
+      toast.error('Failed to load sessions');
     }
   };
 
@@ -527,6 +539,7 @@ function SessionSettings({ onLogout }: { onLogout: () => void }) {
       loadSessions();
     } catch (error) {
       console.error('Failed to revoke session:', error);
+      toast.error('Failed to revoke session');
     }
   };
 
@@ -536,6 +549,7 @@ function SessionSettings({ onLogout }: { onLogout: () => void }) {
       loadSessions();
     } catch (error) {
       console.error('Failed to revoke other sessions:', error);
+      toast.error('Failed to revoke other sessions');
     }
   };
 
@@ -545,6 +559,7 @@ function SessionSettings({ onLogout }: { onLogout: () => void }) {
       onLogout();
     } catch (error) {
       console.error('Failed to logout all:', error);
+      toast.error('Failed to logout from all devices');
     }
   };
 

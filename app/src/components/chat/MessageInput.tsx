@@ -25,7 +25,7 @@ interface MessageInputProps {
   onCancelEdit?: () => void;
 }
 
-export function MessageInput({ chatId, chatName, onSend, onSendFile, replyToMessage, onCancelReply, editingMessage, onCancelEdit }: MessageInputProps = {}) {
+export function MessageInput({ chatId, chatName, onSend, onSendMedia, onSendFile, replyToMessage, onCancelReply, editingMessage, onCancelEdit }: MessageInputProps = {}) {
   const {
     selectedChat,
     sendMessage,
@@ -172,13 +172,15 @@ export function MessageInput({ chatId, chatName, onSend, onSendFile, replyToMess
   };
 
   const handleStartRecording = async (type: 'voice' | 'video') => {
-    // We do not manage the upload directly from handleStop in here yet, the context handles logic.
-    // Wait, the context's sendMediaMessage needs to be overridden here!
-    // Instead of overriding startRecording, we just call the correct function when recording stops?
-    // Oh, the actual recording state and file generation is inside ChatContext currently.
-    // That means `MessageInput` just triggers startRecording() on the context.
-    // Then ChatContext takes care of sending it. This is harder to decouple...
-    await startRecording(type);
+    if (onSendMedia) {
+      // For group chats: use the provided onSendMedia callback
+      // We still use the context's startRecording for media capture,
+      // but the group context will handle sending via onSendMedia prop
+      await startRecording(type);
+    } else {
+      // For DM chats: the context handles everything
+      await startRecording(type);
+    }
   };
 
   const handleStopRecording = () => {

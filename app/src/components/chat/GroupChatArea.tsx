@@ -204,6 +204,10 @@ export function GroupMessageBubble({
             className={`flex gap-3 max-w-[80%] ${isMine ? 'ml-auto flex-row-reverse' : ''}`}
             onMouseEnter={handleMouseEnter}
             onMouseLeave={handleMouseLeave}
+            onClick={(e) => {
+                if ((e.target as HTMLElement).closest('button, a')) return;
+                setShowReactionPicker(prev => !prev);
+            }}
         >
             {!isMine && (
                 <div className="w-8 shrink-0">

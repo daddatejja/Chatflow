@@ -38,7 +38,7 @@ export function GroupInfoPanel({ onClose }: GroupInfoPanelProps) {
     };
 
     return (
-        <div className="w-80 h-full bg-background border-l border-border flex flex-col absolute right-0 top-0 z-20 shadow-xl transition-all">
+        <div className="w-full sm:w-80 h-full bg-background border-l border-border flex flex-col absolute right-0 top-0 z-20 shadow-xl transition-all">
             <div className="h-16 flex items-center justify-between px-4 border-b border-border bg-card">
                 <h3 className="font-semibold flex items-center gap-2">
                     <Hash className="w-4 h-4 text-primary" /> Group Info

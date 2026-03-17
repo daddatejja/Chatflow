@@ -68,7 +68,7 @@ export function CallHistory({ onClose }: { onClose: () => void }) {
     };
 
     return (
-        <div className="absolute inset-y-0 right-0 w-80 bg-card border-l border-border shadow-2xl flex flex-col z-40 animate-in slide-in-from-right-8 duration-300">
+        <div className="absolute inset-y-0 right-0 w-full sm:w-80 bg-card border-l border-border shadow-2xl flex flex-col z-40 animate-in slide-in-from-right-8 duration-300">
             <div className="p-4 border-b border-border flex items-center justify-between bg-muted/30">
                 <h2 className="font-semibold text-lg flex items-center gap-2">
                     <Phone className="w-5 h-5 text-primary" />

@@ -19,8 +19,15 @@ import { FriendRequestsDialog } from '@/components/chat/FriendRequestsDialog';
 import { SearchPanel } from '@/components/chat/SearchPanel';
 import { CallHistory } from '@/components/call/CallHistory';
 import { NotificationCenter } from '@/components/notifications/NotificationCenter';
-import { UserPlus, Bell, Shield, Settings as SettingsIcon, LogOut, Sun, Moon, Search, Phone, Menu, ArrowLeft } from 'lucide-react';
+import { UserPlus, Bell, Shield, Settings as SettingsIcon, LogOut, Sun, Moon, Search, Phone, Menu, ArrowLeft, MoreVertical } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator
+} from '@/components/ui/dropdown-menu';
 import { ThemeProvider } from '@/components/theme-provider';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { useTheme } from 'next-themes';
@@ -130,8 +137,8 @@ function AppContent() {
 
   if (loading) {
     return (
-      <div className="h-screen w-screen flex items-center justify-center bg-gray-100">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500" />
+      <div className="h-screen w-screen flex items-center justify-center bg-background">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" />
       </div>
     );
   }
@@ -259,7 +266,7 @@ function AppContent() {
               variant="ghost"
               size="icon"
               onClick={() => setShowCallHistory(true)}
-              className="text-foreground hover:bg-accent/50 rounded-full"
+              className="hidden sm:flex text-foreground hover:bg-accent/50 rounded-full"
               title="Call History"
             >
               <Phone className="w-5 h-5" />
@@ -270,7 +277,7 @@ function AppContent() {
               variant="ghost"
               size="icon"
               onClick={() => setShowUserSearch(true)}
-              className="text-foreground hover:bg-accent/50 rounded-full"
+              className="hidden sm:flex text-foreground hover:bg-accent/50 rounded-full"
               title="Find Users"
             >
               <UserPlus className="w-5 h-5" />
@@ -282,7 +289,7 @@ function AppContent() {
                 variant="ghost"
                 size="icon"
                 onClick={() => setShowAdmin(true)}
-                className="text-purple-600 dark:text-purple-400 hover:bg-purple-100 dark:hover:bg-purple-900/30 rounded-full"
+                className="hidden sm:flex text-purple-600 dark:text-purple-400 hover:bg-purple-100 dark:hover:bg-purple-900/30 rounded-full"
               >
                 <Shield className="w-5 h-5" />
               </Button>
@@ -292,7 +299,7 @@ function AppContent() {
               variant="ghost"
               size="icon"
               onClick={() => setShowSettings(true)}
-              className="text-foreground hover:bg-accent/50 rounded-full"
+              className="hidden sm:flex text-foreground hover:bg-accent/50 rounded-full"
             >
               <SettingsIcon className="w-5 h-5" />
             </Button>
@@ -301,10 +308,41 @@ function AppContent() {
               variant="ghost"
               size="icon"
               onClick={handleLogout}
-              className="text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full ml-2"
+              className="hidden sm:flex text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full"
             >
               <LogOut className="w-5 h-5" />
             </Button>
+
+            {/* Mobile Dropdown Menu */}
+            <div className="sm:hidden">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="text-foreground hover:bg-accent/50 rounded-full ml-1">
+                    <MoreVertical className="w-5 h-5" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuItem onClick={() => setShowCallHistory(true)}>
+                    <Phone className="w-4 h-4 mr-2" /> Call History
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setShowUserSearch(true)}>
+                    <UserPlus className="w-4 h-4 mr-2" /> Find Users
+                  </DropdownMenuItem>
+                  {user?.isAdmin && (
+                    <DropdownMenuItem onClick={() => setShowAdmin(true)} className="text-purple-600 dark:text-purple-400">
+                      <Shield className="w-4 h-4 mr-2" /> Admin Dashboard
+                    </DropdownMenuItem>
+                  )}
+                  <DropdownMenuItem onClick={() => setShowSettings(true)}>
+                    <SettingsIcon className="w-4 h-4 mr-2" /> Settings
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleLogout} className="text-red-600 dark:text-red-400">
+                    <LogOut className="w-4 h-4 mr-2" /> Logout
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           </div>
         </header>
 

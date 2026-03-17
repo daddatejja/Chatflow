@@ -36,12 +36,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const blockUser = useCallback(async (userId: string) => {
     try {
       await userAPI.blockUser(userId);
-      setBlockedUsers(prev => {
-        // We might not have the full user object to add, but we need to track it.
-        // Usually the backend returns it or we just refetch. Let's refetch to be safe.
-        userAPI.getBlockedUsers().then(res => setBlockedUsers(res.data.blockedUsers || []));
-        return prev;
-      });
+      const res = await userAPI.getBlockedUsers();
+      setBlockedUsers(res.data.blockedUsers || []);
       toast.success('User blocked successfully');
     } catch (error: any) {
       console.error('Failed to block user:', error);
